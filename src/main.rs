@@ -1,5 +1,7 @@
 use std::env;
-use std::fs;
+use std::process;
+
+use minigrep_rust;
 
 fn main() {
     // get the arguments passsed through the command line
@@ -8,14 +10,33 @@ fn main() {
     // Prints and returns the value of a given expression for quick and dirty debugging.
     // dbg!(args);
 
-    let query = &args[1];
-    let file_path = &args[2];
+    // use the build method constructor on the config struct
+    // unwrap_or_else allows us to define non-panic error handling
+    // if successful, gives the Ok(config) value
+    // if not, gives the Err(message) value inside the closure
+    let config = minigrep_rust::Config::build(&args).unwrap_or_else(|err| {
+        println!("Problem parsing arguments: {err}");
 
-    println!("Searching for {}", query);
-    println!("In file {}", file_path);
+        // nonzero exit status to signal that our program excited with an error state
+        process::exit(1);
+    });
 
-    let contents = fs::read_to_string(file_path)
-        .expect("Should have been able to read the file");
+    println!("Searching for {}", config.query);
+    println!("In file {}", config.file_path);
 
-    println!("With text:\n{contents}");
+    // since our run function does not return a value if it is successful
+    // just handle the error case
+    if let Err(e) = minigrep_rust::run(config) {
+        println!("Application error: {e}");
+        process::exit(1);
+    }
 }
+
+/* 
+    Test-Driven Development Steps
+    1. Write a test that fails and run it to make sure it fails for the reason you expect.
+    2. Write or modify just enough code to make the new test pass.
+    3. Refactor the code you just added or changed and make sure the tests continue to pass.
+    4. Repeat from step 1!
+
+*/
