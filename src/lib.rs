@@ -1,4 +1,5 @@
 use std::fs;
+use std::env;
 use std::error::Error;
 
 // Box<dyn Error> allows us to return an error without specifying the error type
@@ -7,8 +8,15 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>>{
     // the ? operators returns an error value for the calling function to handle
     let contents = fs::read_to_string(config.file_path)?;
 
-    // println!("With text:\n{contents}");
-    for line in search(&config.query, &contents) {
+    let results = if config.ignore_case {
+        // note do not put semi colons here
+        search_case_insensitive(&config.query, &contents)
+    } else {
+        search(&config.query, &contents)
+    };
+    
+    // iterate through the vector
+    for line in results {
         println!("{line}");
     }
 
@@ -19,6 +27,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>>{
 pub struct Config {
     pub query: String,
     pub file_path: String,
+    pub ignore_case: bool,
 }
 
 impl Config {                         // success   fail
@@ -32,8 +41,10 @@ impl Config {                         // success   fail
         let query = args[1].clone();
         let file_path = args[2].clone();
 
+        let ignore_case = env::var("IGNORE_CASE").is_ok();
+
         // return config object if arguments passed
-        Ok(Config { query, file_path })
+        Ok(Config { query, file_path, ignore_case })
     }
 }
 
@@ -42,15 +53,31 @@ mod tests {
     use super::*;
 
     #[test]
-    fn one_result() {
+    fn case_sensitive() {
         let query = "duct";
         // backslash after opening double quotes tells rust not to put a newline character at the beginning of contnents
         let contents = "\
 Rust:
 safe, fast, productive.
-Pick three.";
+Pick three.
+Duct tape.";
 
         assert_eq!(vec!["safe, fast, productive."], search(query, contents));
+    }
+
+    #[test]
+    fn case_insensitive() {
+        let query = "rUsT";
+        let contents = "\
+Rust:
+safe, fast, productive.
+Pick three.
+Trust me.";
+
+        assert_eq!(
+            vec!["Rust:", "Trust me."],
+            search_case_insensitive(query, contents)
+        );
     }
 }
 
@@ -76,6 +103,21 @@ pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
     // lines method returns an iterator
     for line in contents.lines() {
         if line.contains(query) {
+            results.push(line);
+        }
+    }
+
+    results
+}
+
+pub fn search_case_insensitive<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
+    // to_lowercase creates new data than referencing existing data
+    let query = query.to_lowercase();
+    let mut results = Vec::new();
+
+    for line in contents.lines() {
+        // pass a reference to the query now since the containes method is designed to take a stirng slice
+        if line.to_lowercase().contains(&query) {
             results.push(line);
         }
     }

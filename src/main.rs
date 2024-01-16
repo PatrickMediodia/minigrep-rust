@@ -15,19 +15,24 @@ fn main() {
     // if successful, gives the Ok(config) value
     // if not, gives the Err(message) value inside the closure
     let config = minigrep_rust::Config::build(&args).unwrap_or_else(|err| {
-        println!("Problem parsing arguments: {err}");
+        // prints to the standard outout
+        //println!("Problem parsing arguments: {err}");
+        
+        // prints to the standard error
+        eprintln!("Problem parsing arguments: {err}");
+
 
         // nonzero exit status to signal that our program excited with an error state
         process::exit(1);
     });
 
-    println!("Searching for {}", config.query);
-    println!("In file {}", config.file_path);
+    // println!("Searching for {}", config.query);
+    // println!("In file {}", config.file_path);
 
     // since our run function does not return a value if it is successful
     // just handle the error case
     if let Err(e) = minigrep_rust::run(config) {
-        println!("Application error: {e}");
+        eprintln!("Application error: {e}");
         process::exit(1);
     }
 }
@@ -40,3 +45,12 @@ fn main() {
     4. Repeat from step 1!
 
 */
+
+// sets ignore_case to to 1
+// IGNORE_CASE=1 cargo run -- to poem.txt
+
+// print to standard error and not standard output
+// eprintln!("Problem parsing arguments: {err}");
+
+// pipe the output of the library to an output file
+// cargo run -- to poem.txt > output.txt
